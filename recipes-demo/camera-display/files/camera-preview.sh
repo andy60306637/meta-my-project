@@ -78,20 +78,76 @@ if ! pgrep -x nvargus-daemon >/dev/null; then
     fi
 fi
 
-# Method 1: Try nvoverlaysink (direct to framebuffer, works without X11/Wayland)
-echo "Attempting camera preview with nvoverlaysink..."
+# Try different video sinks in order of preference
+# Method 1: nv3dsink (NVIDIA EGL sink for direct rendering)
+if gst-inspect-1.0 nv3dsink >/dev/null 2>&1; then
+    echo "Trying nv3dsink..."
+    if gst-launch-1.0 -v \
+        nvarguscamerasrc sensor-id=$SENSOR_ID ! \
+        "video/x-raw(memory:NVMM),width=$WIDTH,height=$HEIGHT,framerate=$FRAMERATE/1" ! \
+        nv3dsink sync=false 2>&1; then
+        exit 0
+    fi
+    echo "nv3dsink failed, trying next option..."
+    echo ""
+fi
+
+# Method 2: nvoverlaysink (direct to framebuffer)
+if gst-inspect-1.0 nvoverlaysink >/dev/null 2>&1; then
+    echo "Trying nvoverlaysink..."
+    if gst-launch-1.0 -v \
+        nvarguscamerasrc sensor-id=$SENSOR_ID ! \
+        "video/x-raw(memory:NVMM),width=$WIDTH,height=$HEIGHT,framerate=$FRAMERATE/1" ! \
+        nvoverlaysink sync=false 2>&1; then
+        exit 0
+    fi
+    echo "nvoverlaysink failed, trying next option..."
+    echo ""
+fi
+
+# Method 3: waylandsink (requires Wayland compositor)
+if gst-inspect-1.0 waylandsink >/dev/null 2>&1; then
+    echo "Trying waylandsink (requires Wayland compositor)..."
+    if gst-launch-1.0 -v \
+        nvarguscamerasrc sensor-id=$SENSOR_ID ! \
+        "video/x-raw(memory:NVMM),width=$WIDTH,height=$HEIGHT,framerate=$FRAMERATE/1" ! \
+        nvvidconv ! \
+        "video/x-raw,format=RGBA" ! \
+        waylandsink sync=false 2>&1; then
+        exit 0
+    fi
+    echo "waylandsink failed, trying next option..."
+    echo ""
+fi
+
+# Method 4: kmssink (direct KMS/DRM output)
+if gst-inspect-1.0 kmssink >/dev/null 2>&1; then
+    echo "Trying kmssink (direct DRM/KMS output)..."
+    if gst-launch-1.0 -v \
+        nvarguscamerasrc sensor-id=$SENSOR_ID ! \
+        "video/x-raw(memory:NVMM),width=$WIDTH,height=$HEIGHT,framerate=$FRAMERATE/1" ! \
+        nvvidconv ! \
+        "video/x-raw,format=RGBA" ! \
+        kmssink connector-id=37 plane-id=1 sync=false 2>&1; then
+        exit 0
+    fi
+    echo "kmssink failed, trying next option..."
+    echo ""
+fi
+
+# Method 5: autovideosink (automatic selection)
+echo "Trying autovideosink (automatic sink selection)..."
 gst-launch-1.0 -v \
     nvarguscamerasrc sensor-id=$SENSOR_ID ! \
     "video/x-raw(memory:NVMM),width=$WIDTH,height=$HEIGHT,framerate=$FRAMERATE/1" ! \
-    nvoverlaysink sync=false
+    nvvidconv ! \
+    "video/x-raw,format=RGBA" ! \
+    autovideosink sync=false
 
-# If nvoverlaysink fails and Wayland is available, try waylandsink
-# if [ -n "$WAYLAND_DISPLAY" ]; then
-#     echo "Trying waylandsink..."
-#     gst-launch-1.0 -v \
-#         nvarguscamerasrc sensor-id=$SENSOR_ID ! \
-#         "video/x-raw(memory:NVMM),width=$WIDTH,height=$HEIGHT,framerate=$FRAMERATE/1" ! \
-#         nvvidconv ! \
-#         "video/x-raw,format=I420" ! \
-#         waylandsink sync=false
-# fi
+echo ""
+echo "All video sink methods failed."
+echo "Please check:"
+echo "  1. Display is connected to DisplayPort/HDMI"
+echo "  2. Display environment (X11/Wayland) is running"
+echo "  3. Run 'gst-inspect-1.0 | grep sink' to see available sinks"
+exit 1
