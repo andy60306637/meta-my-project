@@ -2,7 +2,8 @@
 # IMX219 Camera Preview Script
 # Display camera output directly to DisplayPort/HDMI
 
-set -e
+# Don't exit on error - we want to try multiple methods
+set +e
 
 SENSOR_ID=0
 WIDTH=1920
@@ -143,6 +144,15 @@ gst-launch-1.0 -v \
     nvvidconv ! \
     "video/x-raw,format=RGBA" ! \
     autovideosink sync=false
+
+# Check exit code
+EXIT_CODE=$?
+if [ $EXIT_CODE -eq 0 ] || [ $EXIT_CODE -eq 130 ]; then
+    # Exit code 0 = success, 130 = interrupted by Ctrl+C (which is normal)
+    echo ""
+    echo "Camera preview stopped."
+    exit 0
+fi
 
 echo ""
 echo "All video sink methods failed."
