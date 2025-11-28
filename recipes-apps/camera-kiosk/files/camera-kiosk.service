@@ -1,9 +1,7 @@
 [Unit]
 Description=IMX219 Camera Kiosk Mode - Fullscreen Display
-After=weston.service
-Requires=weston.service
-After=nvargus-daemon.service
-Requires=nvargus-daemon.service
+After=weston-kiosk.service nvargus-daemon.service
+Requires=weston-kiosk.service nvargus-daemon.service
 
 [Service]
 Type=simple
