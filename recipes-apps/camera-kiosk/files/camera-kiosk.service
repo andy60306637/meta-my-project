@@ -1,13 +1,11 @@
 [Unit]
-Description=IMX219 Camera Kiosk Mode - Fullscreen Display
-After=weston-kiosk.service nvargus-daemon.service
-Requires=weston-kiosk.service nvargus-daemon.service
+Description=IMX219 Camera Kiosk Mode - Direct DisplayPort Output
+After=nvargus-daemon.service systemd-udev-settle.service
+Requires=nvargus-daemon.service
 
 [Service]
 Type=simple
-Environment="XDG_RUNTIME_DIR=/run/user/0"
-Environment="WAYLAND_DISPLAY=wayland-0"
-ExecStartPre=/bin/sleep 5
+ExecStartPre=/bin/sleep 3
 ExecStart=/usr/bin/camera-kiosk.sh
 Restart=always
 RestartSec=3

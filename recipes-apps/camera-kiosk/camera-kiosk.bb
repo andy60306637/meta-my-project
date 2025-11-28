@@ -1,11 +1,12 @@
-SUMMARY = "IMX219 Camera Kiosk Mode - Auto-start fullscreen camera display"
-DESCRIPTION = "Systemd service to automatically display IMX219 camera on boot in fullscreen mode"
+SUMMARY = "IMX219 Camera Kiosk Mode - Direct DisplayPort Output"
+DESCRIPTION = "Systemd service to automatically display IMX219 camera via direct hardware output on boot"
 LICENSE = "MIT"
 LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda2f7b4f302"
 
 SRC_URI = " \
     file://camera-kiosk.service \
     file://camera-kiosk.sh \
+    file://camera-kiosk-debug.sh \
 "
 
 S = "${WORKDIR}"
@@ -23,11 +24,13 @@ do_install() {
     # Install startup script
     install -d ${D}${bindir}
     install -m 0755 ${WORKDIR}/camera-kiosk.sh ${D}${bindir}/
+    install -m 0755 ${WORKDIR}/camera-kiosk-debug.sh ${D}${bindir}/
 }
 
 FILES:${PN} = " \
     ${systemd_system_unitdir}/camera-kiosk.service \
     ${bindir}/camera-kiosk.sh \
+    ${bindir}/camera-kiosk-debug.sh \
 "
 
-RDEPENDS:${PN} = "gstreamer1.0-plugins-tegra weston bash"
+RDEPENDS:${PN} = "gstreamer1.0-plugins-tegra gstreamer1.0-plugins-nvvideosinks bash"
