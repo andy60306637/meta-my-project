@@ -23,9 +23,8 @@ for i in {1..10}; do
 done
 
 # Start Weston with DRM backend
+# Using GL renderer for better performance (NVIDIA GPU acceleration)
 exec weston \
     --backend=drm-backend.so \
-    --tty=1 \
     --log=/var/log/weston.log \
-    --idle-time=0 \
-    --use-pixman
+    --idle-time=0
