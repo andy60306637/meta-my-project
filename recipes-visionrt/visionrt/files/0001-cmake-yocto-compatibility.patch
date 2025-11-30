@@ -1,0 +1,45 @@
+From: VisionRT Yocto Integration
+Subject: Improve CMakeLists.txt compatibility with Yocto build system
+
+This patch makes VisionRT CMakeLists.txt more compatible with Yocto's
+cross-compilation environment by:
+- Better handling of pkg-config paths
+- Improved library search paths for CUDA and DeepStream
+- Support for standard CMAKE_INSTALL_* variables
+
+---
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 1234567..abcdefg 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -45,8 +45,17 @@ foreach(_candidate IN LISTS _cuda_target_candidates)
+     endif()
+ endforeach()
+ 
++# Enable GNUInstallDirs for standard install paths
++include(GNUInstallDirs)
++
+ find_package(PkgConfig REQUIRED)
++
++# Ensure pkg-config looks in sysroot when cross-compiling
++if(CMAKE_CROSSCOMPILING AND CMAKE_SYSROOT)
++    set(ENV{PKG_CONFIG_SYSROOT_DIR} "${CMAKE_SYSROOT}")
++endif()
++
+ pkg_check_modules(GSTREAMER REQUIRED gstreamer-1.0 gstreamer-app-1.0)
+ pkg_check_modules(OPENCV REQUIRED opencv4)
+ 
+@@ -140,7 +149,12 @@ if(NOT CUDA_CUDART_LIBRARY)
+ endif()
+ 
+ if(NOT CUDA_DRIVER_LIBRARY)
+-    message(WARNING "Could not locate libcuda.so in the sysroot. Run scripts/sync_sysroot_from_jetson.sh if the driver stubs are missing.")
++    # In Yocto builds, libcuda.so might not be available at build time
++    # but will be present at runtime from the NVIDIA driver
++    if(NOT CMAKE_CROSSCOMPILING)
++        message(WARNING "Could not locate libcuda.so in the sysroot.")
++    endif()
++    set(CUDA_DRIVER_LIBRARY "cuda")
+ endif()
+ 
+ # Custom bbox parser shared library used by DeepStream nvinfer
