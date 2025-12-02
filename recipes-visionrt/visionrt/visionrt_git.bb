@@ -95,9 +95,15 @@ do_install() {
         bbwarn "libnvdsinfer_custombboxparser.so not found, skipping installation"
     fi
     
-    # Install configuration files
+    # Install configuration files with path corrections
     install -d ${D}${sysconfdir}/visionrt
-    install -m 0644 ${S}/configs/config_infer_primary.txt ${D}${sysconfdir}/visionrt/
+    
+    # Fix paths in config_infer_primary.txt
+    sed -e 's|/home/andy/Desktop/project/test/models/|/opt/nvidia/deepstream/models/visionrt/|g' \
+        ${S}/configs/config_infer_primary.txt > ${D}${sysconfdir}/visionrt/config_infer_primary.txt
+    chmod 0644 ${D}${sysconfdir}/visionrt/config_infer_primary.txt
+    
+    # Install other configs as-is
     install -m 0644 ${S}/configs/nvinfer_config.txt ${D}${sysconfdir}/visionrt/
     install -m 0644 ${S}/configs/simple_config.txt ${D}${sysconfdir}/visionrt/
     
